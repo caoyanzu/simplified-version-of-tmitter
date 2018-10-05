@@ -4,12 +4,13 @@ from django.template import Context, loader
 from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator
 from django.core import serializers
-from django.utils.translation import ugettext as _
-from tmitter.settings import *
-from tmitter.mvc.models import Note,User,Category,Area
-from tmitter.mvc.feed import RSSRecentNotes,RSSUserRecentNotes
-from tmitter.utils import mailer,formatter,function,uploader
+#from django.utils.translation import ugettext as _
+from mytmitter.settings import *
+from mytmitter.mvc.models import Note,User,Category,Area
+from mytmitter.mvc.feed import RSSRecentNotes,RSSUserRecentNotes
+from mytmitter.utils import mailer,formatter,function,uploader
 
+#登录注册部分
 def signup(request):
     #判断是否登录
 	_islogin = __is_login(request)
@@ -41,11 +42,11 @@ def signup(request):
 	else:
 	    _state = {
 		    'success':False
-			'message':_('Signup')
+			'message':'Signup'
 		}
 		
 	if(_state['success']):   #如果注册成功，返回成功界面
-	    return __result_message(request,_('Signup successed'),_('Your account was registed success.'))
+	    return __result_message(request,'Signup successed','Your account was registed success.')
 		
 	_result = {            #显示注册信息
 	    'success':_state['success'],
@@ -60,7 +61,7 @@ def signup(request):
     _template = loader.get_template('signup.html')  #渲染注册页面
 
     _context = {
-	    'page_title':_('Signup'),
+	    'page_title':'Signup',
 		'state':_result,
 	}	
 	
@@ -75,28 +76,28 @@ def __do_signup(request,_userinfo):
 	
 	#检查输入合法性,初始的'success'状态是False，所以不用每次重新赋值
 	if (_userinfo['username']==''):
-	    _state['message']=_('用户名未输入')
+	    _state['message']='用户名未输入'
 		return _state
 	
 	if (_userinfo['password']==''):
-	    _state['message']=_('未输入密码')
+	    _state['message']='未输入密码'
 		return _state
 	
 	if (_userinfo['realname']==''):
-	    _state['message']=_('未输入真实姓名')
+	    _state['message']='未输入真实姓名'
 		return _state
 		
 	if (_userinfo['email']==''):
-	    _state['message']=_('未输入邮件地址')
+	    _state['message']='未输入邮件地址'
 		return _state
 	
     #编写__check_username_exist函数用于检测用户名是否被注册	
 	if (__check_username_exist(_userinfo['username'])):  
-	    _state['message']=_('用户名已经被注册')
+	    _state['message']='用户名已经被注册'
 		return _state
 	
 	if (_userinfo['confirm']!=_userinfo['password']):
-	    _state['message']=_('两次输入不一致')
+	    _state['message']='两次输入不一致'
 		return _state
 		
 	_user=User(
@@ -110,15 +111,14 @@ def __do_signup(request,_userinfo):
 	try:
 	    _user.save()
 	    _state['success']='True'
-	    _state['message']=_('successed')
+	    _state['message']='successed'
 	except:
 	    _state['success'] = False
-		_state['message'] = _('程序异常，注册失败')
+		_state['message'] = '程序异常，注册失败'
 	mailer.send_regist_success_mail(_userinfo)
 	return _state
-
-#__do_signup中检测用户名是否被注册，传入用户输入的用户名，在models中找是否已存在	
-def __check_username_exist(_username):
+	
+def __check_username_exist(_username):  #__do_signup中检测用户名是否被注册，传入用户输入的用户名，在models中找是否已存在
     _exist = True
 	
 	try :
@@ -147,7 +147,7 @@ def signin(request):
 	    _state = __do_login(request,_username,_password)
 	
 	    if _state['success']:
-		    return __result_message(request,_('Login successed'),_('you are logining now'))
+		    return __result_message(request,'Login successed','you are logining now')
 			
 	else:
 	    _state = {
@@ -157,11 +157,14 @@ def signin(request):
 	#页面内容，填充模板文件signin.html
 	_template = loader.get_template('signin.html')
 	_context = {
-	    'page_title' : _('Signin')
+	    'page_title' : 'Signin'
 		'state' : _state
 	}
 	_output = _template.render(_context)
 	return HttpResponse(_output)
+	
+def __is_login(request):    #判断是否登录，会多次用到
+    return request.session.get('islogin',False)
 	
 def __do_login(request,_username,_password):
     #首先检查登录时输入的用户名和密码是否匹配
@@ -175,9 +178,8 @@ def __do_login(request,_username,_password):
 		request.session['realname'] = _state['realname']
 		
 	return _state
-
-#实际的登录操作在__check_login中完成	
-def __check_login(_username,_password):
+	
+def __check_login(_username,_password):   #实际的登录操作在__check_login中完成
     _state = {
 	    'success':True,
 		'message':'none',
@@ -189,16 +191,16 @@ def __check_login(_username,_password):
 	    #在User这张表中查找传入的用户名
 	    _user = User.objects.get(username = _username)
 		
-		if (_user.password ==function.md5_encode(_password)):
+		if (_user.password == function.md5_encode(_password)):
 		    _state['success'] = True
 			_state['userid'] = _user.id
 			_state['realname'] = _user.realname
 		else:
 		    _state['success'] = False
-			_state['message'] = _('密码不正确')
+			_state['message'] = '密码不正确'
     except(User.DoesNotExist):
 	    _state['success'] = False
-        _state['message'] = _('User does exist')
+        _state['message'] = 'User does exist'
     
 	return _state	
 
@@ -208,8 +210,9 @@ def signout(request):
 	request.session['username'] = ''
 	
 	return HttpResponseRedirect('/')
-	
-def __result_message(request,_title = 'Message',message = _('Unknow error'),_go_back_url = ''):
+
+#信息显示函数，用于用户做出操作后显示相应的信息，会多次用到	
+def __result_message(request,_title = 'Message',message = 'Unknow error',_go_back_url = ''):
     _islogin = __is_login(request)
 	
 	if _go_back_url =='':
@@ -225,7 +228,7 @@ def __result_message(request,_title = 'Message',message = _('Unknow error'),_go_
 	_output = _template.render(_context)
 	return HttpResponse(_output)
 	
-#视图方法
+#信息发布和浏览部分
 def index(request):
     return index_user(request,'')
 
@@ -238,11 +241,12 @@ def index_user_self(request):   #自己的消息界面
 
 def index_page(request,_page_index):   #页数查找
     return index_user_page(request,'',_page_index)
+
 #信息发布功能	
 def index_user_page(request,_username,_page_index):
     #获取用户的登录状态
 	_islogin = __is_login(request)
-	_page_title = _('Home')
+	_page_title = 'Home'
 	
     try:
 	    #获取POST提交的消息
@@ -256,7 +260,7 @@ def index_user_page(request,_username,_page_index):
 	    if not _islogin:
 		    return HttpResponseRedirect('/signip/')
 		#保存消息
-		(_category,_is_added_cate) = Category.objects.get_or_create(name=u'网页')
+		(_category,_is_added_cate) = Category.objects.get_or_create(name='网页')
 		
 		try:
 		    _user = User.objects.get(id = __user_id(request))  #获得当前登录用户
@@ -295,7 +299,7 @@ def index_user_page(request,_username,_page_index):
 	    _user = get_object_or_404(User,username = _username)
 		_userid = _user.id
 		_notes = Note.objects.filter(user = _user).order_by('-addtime')
-		_page_title = u'%s' %_user.realname
+		_page_title = '%s' %_user.realname
 		#获取朋友列表
 		_friends = _user.friend.order_by('id')[0:FRIEND_LIST_MAX]
 		print ('..................',_friends)
@@ -349,7 +353,7 @@ def detail(request,_id):
 	
 	_template = loader.get_template('detail.html')
 	_context = {
-	    'page_title':_(%s\'s message %s) % (_note.user.realname,_id),
+	    'page_title':'%s\'s message %s' % (_note.user.realname,_id),
 		'item':_note,
 		'islogin':_islogin,
 		'userid':__user_id(request),
@@ -367,8 +371,187 @@ def detail_delete(request,_id):
 	
 	try:
 	    _note.delete()
-		_message = _('Message deleted')
+		_message = 'Message deleted'
 	except:
-	    _message = _('delete failed')
+	    _message = 'delete failed'
 	
-	return __result_message(request,_('Message %s') %_id,_message)
+	return __result_message(request,'Message %s' %_id,_message)
+	
+
+#朋友管理部分	
+def user_index(request):   #对user_list函数的简单封装,默认传入参数1，即第一页的用户列表
+    return user_list(request,1)
+	
+def user_list(request,_page_index = 1):
+    _islogin = __is_login(request)
+	
+	_page_title = 'Everyone'
+	_user = User.objects.order_by('-addtime')
+	
+	_login_user = None
+	_login_user_friend_list = None
+	
+	if _islogin:
+	    try:
+		    _login_user = User.objects.get(
+			id = __user_id(request)
+			)
+			_login_user_friend_list = _login_user.frined.all()
+		except:
+		    _login_user = None
+			
+	_page_bar = formatter.pagebar(_user,_page_index,'','control/userlist_pagebar.html')#分页
+	
+	_offset_index = (int(_page_index)-1)*PAGE_SIZE  #计算当前页的起止记录
+	_last_item_index = PAGE_SIZE * int(_page_index) 
+	
+	_users = _users[_offset_index:_last_item_index]
+	
+	#内容
+	_template = loader.get_template('user_list.html')
+	
+	_context = {
+	'page_title':_page_title,
+	'users':_users,
+	'login_user_friend_list':_login_user_friend_list,
+	'islogin':_islogin,
+	'userid':__user_id(request),
+	'page_bar':_page_bar,
+	}
+	_output = _template.render(_context)
+	
+	return HttpResponse(_output)
+	
+def friend_add(request,_username):   #添加朋友
+    _islogin = __is_login(request)
+	
+	if not _islogin:                 #未登陆则不允许添加朋友
+	    return HttpResponseRedirect('/signin/')
+	
+	_state = {
+	'success':False,
+	'message':'',
+	}
+	
+	_user_id = __user_id(request)
+	
+	try:
+	    _user = User.objects.get(id = _user_id)
+	except:
+	    return __result_message(request,'sorry','this user is not exist')
+		
+	try:           #实际的添加朋友操作在这个地方完成
+	    _friend = User.objects.get(username = _username)  #获取被添加朋友的实例
+		_user.friend.add(_friend)
+		return __result_message(request,'操作成功')
+	except:
+	    return __result_message(request,'sorry','这个用户不存在')
+
+#个人资料配置		
+def settings(request):   
+    _islogin = __is_login(request)
+	
+	if not _islogin:
+	    return HttpResponseRedirect('/signin/')
+	_user_id = __user_id(request)
+	try:
+	    _user = User.objects.get(id = _user_id)
+	except:
+	    return HttpResponseRedirect('/signin/')
+		
+	if request.method =='POST':
+	    _userinfo = {
+		'realname':request.POST['realname'],    #用户真名
+		'url':request.POST['url'],              #个人主页
+		'email':request.POST['email'],          #邮件地址
+		'face':request.FILES.get['face',None],  #头像
+		'about':request.POST['about'],          #关于（简介）
+		}
+		_is_post = True
+	else:
+    _is_post = False
+    
+    _state = {
+	'message':'',
+	}
+	
+	if _is_post:
+	    _user.realname = _userinfo['realname']
+		_user.url = _userinfo['url']
+		_user.email = _userinfo['email']
+		_user.about = _userinfo['about']
+		_file_obj = _userinfo['face']
+		
+		try:
+		    if _file_obj:
+			    _upload_state = uploader.upload_face(_file_obj)
+				if _upload_state['success']:
+				    _user.face = _upload_state['message']
+				else:
+				    return __result_message(request,'error',_upload_state['message'])
+			
+			_user.save(False)
+			_state['message'] = 'successed'
+		except:
+		    return __result_message(request,'错误','提交数据异常')
+			
+	_template = loader.get_template('settings.html')
+	_context = {
+	'page_title':Profile,
+	'state':_state,
+	'islogin':_islogin,
+	'user':_user,
+	}
+	_output = _template.render(_context)
+	
+	return HttpResponse(_output)
+		
+def friend_remove(request,_username):
+    _islogin = __is_login(request)
+	
+	if not _islogin:
+	    return HttpResponseRedirect('/signin/')
+		
+	_state = {
+	'success':False,
+	'message':'',
+	}
+	
+	_user_id = __user_id(request)
+	
+	try:
+	    _user = User.objects.get(id = _user_id)
+	except:
+	    return __result_message(request.'sorry','用户不存在')
+		
+	try:
+	    _friend = User.objects.get(username = _username)
+		_user.friend.remove(_friend)
+		return __result_message(request,'successed','该用户已成功移除')
+	except:
+	    return __result_message(request,'failed','移除用户失败')
+
+		
+
+def api_note_add(request):
+    #获取查询参数
+	_username = request.GET['uname']
+	_password = function.md5_encode(request.GET['pwd'])
+	_message = request.GET['msg']
+	_from = request.GET.['from']
+	
+	#获取用户信息和检查用户
+	try:
+	    _user = User.objects.get(username = _username,password = _password)
+	except:
+	    return HttpResponse('-2')
+		
+	#获取分类信息，如果不存在则创建一个新的分类
+	(_cate,_is_added_cate) = Category.objects.get_or_create(name = _from)
+	
+	try:
+	    _note = Note(message = _message,user = _user,category = _cate)
+		_note.save()
+		return HttpResponse('1')
+	except:
+	    return HttpResponse('-1')

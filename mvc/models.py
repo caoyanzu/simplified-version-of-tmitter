@@ -4,10 +4,53 @@ import time
 from django.db import connection, models
 from django.contrib import admin
 from django.utils import timesince,html
-from tmitter.utils import formatter,function
-from tmitter.settings import *
+from mytmitter.utils import formatter,function
+from mytmitter.settings import *
 import PIL
-from StringIO import StringIO
+from io import StringIO
+
+class Category(models.Model):
+    name = models.CharField('名称',max_length = 20)
+	
+	def __unicode__(self):
+	    return self.name
+		
+	def save(self):
+	    self.name = self.name[0:20]
+		return super(Category,self).save()
+		
+	class Mate:
+	    verbose_name = '分类'
+		verbose_name_plural = '分类'
+		
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('id','name')
+	list_display_link = ('id','name')
+	list_per_page = ADMIN_PAGE_SIZE
+
+class Area(models.Model):
+    TYPE_CHOICES = (
+	(0,'国家')，
+	(1,'省'),
+	(2,'市'),
+	(3,'区县'),
+	)
+	name = models.CharField('地名',max_length = 100)
+	code = models.CharField('代码',max_length = 255)
+	type = models.InterField('类型',choices = TYPE_CHOICES)
+	parent = models.InterField('父级编号（关联自己）')
+	
+	def __unicode__(self):
+	    return self.name
+	
+	class Mate:
+	    verbose_name = '所在地'
+		verbose_name_plural = '所在地'
+		
+class AreaAdmin(admin.ModelAdmin):
+    list_display = ('id','name','code')
+	list_display_link = ('id','name','code')
+	list_per_page = ADMIN_PAGE_SIZE
 
 class User(models.Model):
     id=models.AutoField(primary_key=True)
@@ -20,6 +63,7 @@ class User(models.Model):
 	url=models.CharField('个人主页',max_length=200,default='',blank=True)
 	about=models.TextField('关于我',max_length=1000,default='',blank=True)
 	addtime=models.DateTimeField('注册时间',auto_now=True)
+	
 	friend=models.ManyToManyField('self',verbose_name='朋友')
 	
 	def __unicode__(self):
@@ -35,10 +79,10 @@ class User(models.Model):
 		super(User,self).save()
 		
 	class Meta:
-	    verbose_name=u'用户'
-		verbose_name_plural=u'用户'
+	    verbose_name = '用户'
+		verbose_name_plural = '用户'
 		
-class UserAdmin(models.Model):
+class UserAdmin(admin.ModelAdmin):
     list_display = ('id','username','realname','email','addtime_format')
 	list_display_link = ('username','realname','email')
 	list_per_page = ADMIN_PAGE_SIZE
@@ -70,12 +114,12 @@ class Note(models.Model):
 		super(Note,self).save()
     
     class Mate:
-        verbose_name = u'消息'
-        verbose_name_plural = u'消息'
+        verbose_name = '消息'
+        verbose_name_plural = '消息'
     def get_absolute_url(self):
         return APP_DOMAIN + 'message/%s/' % self.id
 	
-class NoteAdmin(models.Model):
+class NoteAdmin(admin.ModelAdmin):
     list_display = ('id','user_name','message_short','addtime_format_admin','category_name')
     list_display_link = ('id','message_short')
     search_fields = ['message']
@@ -83,3 +127,6 @@ class NoteAdmin(models.Model):
 	
 admin.site.register(Note,NoteAdmin)
 admin.site.register(User,UserAdmin)
+admin.site.register(Category,CategoryAdmin)
+admin.site.register(Area,AreaAdmin)
+
